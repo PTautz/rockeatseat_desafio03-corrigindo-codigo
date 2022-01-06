@@ -8,6 +8,21 @@ app.use(express.json());
 
 const repositories = [];
 
+//middleware
+function checkIndexRepositories(request, response, next) {
+  const { id } = request.params;
+
+  repositoryIndex = repositories.findIndex(repository => repository.id === id);
+
+  if (repositoryIndex < 0) {
+    return response.status(404).json({ error: "Repository not found" });
+  }
+
+  request.repositoryIndex  = repositoryIndex;
+  
+  return next();
+}
+
 app.get("/repositories", (request, response) => {
   return response.json(repositories);
 });
@@ -22,53 +37,42 @@ app.post("/repositories", (request, response) => {
     techs,
     likes: 0
   };
+  //correção adicionar o repositório no vetor de repositórios
+  repositories.push(repository);
 
-  return response.json(repository);
+  return response.status(201).json(repository);;
 });
 
-app.put("/repositories/:id", (request, response) => {
-  const { id } = request.params;
-  const updatedRepository = request.body;
+//fazendo a verificação do id do repositório no middleware checkIndexRepositories
+app.put("/repositories/:id",checkIndexRepositories, (request, response) => {
+  const { repositoryIndex } = request;
+  const {title, url, techs } = request.body
 
-  repositoryIndex = repositories.findindex(repository => repository.id === id);
+  repositories[repositoryIndex].title = title;
 
-  if (repositoryIndex < 0) {
-    return response.status(404).json({ error: "Repository not found" });
-  }
+  repositories[repositoryIndex].url = url;
 
-  const repository = { ...repositories[repositoryIndex], ...updatedRepository };
+  repositories[repositoryIndex].techs = techs;
 
-  repositories[repositoryIndex] = repository;
-
-  return response.json(repository);
+  return response.json(repositories[repositoryIndex]);
 });
 
-app.delete("/repositories/:id", (request, response) => {
-  const { id } = request.params;
-
-  repositoryIndex = repositories.findIndex(repository => repository.id === id);
-
-  if (repositoryIndex > 0) {
-    return response.status(404).json({ error: "Repository not found" });
-  }
+//fazendo a verificação do id do repositório no middleware checkIndexRepositories
+app.delete("/repositories/:id",checkIndexRepositories, (request, response) => {
+  const { repositoryIndex } = request;
 
   repositories.splice(repositoryIndex, 1);
 
   return response.status(204).send();
 });
 
-app.post("/repositories/:id/like", (request, response) => {
-  const { id } = request.params;
-
-  repositoryIndex = repositories.findIndex(repository => repository.id === id);
-
-  if (repositoryIndex < 0) {
-    return response.status(404).json({ error: "Repository not found" });
-  }
-
-  const likes = ++repositories[repositoryIndex].likes;
-
-  return response.json('likes');
+//fazendo a verificação do id do repositório no middleware checkIndexRepositories
+app.post("/repositories/:id/like",checkIndexRepositories, (request, response) => {
+  const { repositoryIndex } = request;
+  repositories[repositoryIndex].likes++;
+  //console.log (repositories);
+  //precisa retornar o objeto inteiro
+  return response.json(repositories[repositoryIndex]);
 });
 
 module.exports = app;
